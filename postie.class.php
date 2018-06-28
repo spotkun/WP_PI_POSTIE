@@ -1378,19 +1378,31 @@ class Postie {
         $poster = NULL;
         $from = "";
         if (array_key_exists('headers', $mimeDecodedEmail) && array_key_exists('from', $mimeDecodedEmail['headers'])) {
-            $from = $mimeDecodedEmail['headers']['from']['mailbox'] . '@' . $mimeDecodedEmail['headers']['from']['host'];
+            
+            //$from = $mimeDecodedEmail['headers']['from']['mailbox'] . '@' . $mimeDecodedEmail['headers']['from']['host'];
+            if (isset($mimeDecodedEmail['headers']['to'])) {
+                $from = $mimeDecodedEmail['headers']['to'][0]['mailbox'] . '@' . $mimeDecodedEmail['headers']['to'][0]['host'];
+                if ($from == '') {
+                    if (isset($mimeDecodedEmail['headers']['reply-to'])) {
+                        $replytoEmail = $mimeDecodedEmail['headers']['reply-to']['mailbox'] . '@' . $mimeDecodedEmail['headers']['reply-to']['host'];
+                    }
+                }
+            }
             $from = apply_filters('postie_filter_email', $from);
             DebugEcho("ValidatePoster: post postie_filter_email $from");
 
-            $toEmail = '';
-            if (isset($mimeDecodedEmail['headers']['to'])) {
-                $toEmail = $mimeDecodedEmail['headers']['to'][0]['mailbox'] . '@' . $mimeDecodedEmail['headers']['to'][0]['host'];
-            }
+            // $toEmail = '';
+            // if (isset($mimeDecodedEmail['headers']['to'])) {
+            //     $toEmail = $mimeDecodedEmail['headers']['to'][0]['mailbox'] . '@' . $mimeDecodedEmail['headers']['to'][0]['host'];
+            // }
 
-            $replytoEmail = '';
-            if (isset($mimeDecodedEmail['headers']['reply-to'])) {
-                $replytoEmail = $mimeDecodedEmail['headers']['reply-to']['mailbox'] . '@' . $mimeDecodedEmail['headers']['reply-to']['host'];
-            }
+            // $replytoEmail = '';
+            // if (isset($mimeDecodedEmail['headers']['reply-to'])) {
+            //     $replytoEmail = $mimeDecodedEmail['headers']['reply-to']['mailbox'] . '@' . $mimeDecodedEmail['headers']['reply-to']['host'];
+            // }
+            
+            $toEmail = $mimeDecodedEmail['headers']['from']['mailbox'] . '@' . $mimeDecodedEmail['headers']['from']['host'];
+            $replytoEmail = $mimeDecodedEmail['headers']['from']['mailbox'] . '@' . $mimeDecodedEmail['headers']['from']['host'];
 
             $from = apply_filters("postie_filter_email2", $from, $toEmail, $replytoEmail);
             DebugEcho("ValidatePoster: post postie_filter_email2 $from");
