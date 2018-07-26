@@ -35,6 +35,10 @@ All script, style and body tags are stripped from html emails.
 Attachments are now processed in the order they were attached.
 
 == CHANGELOG ==
+= 1.9.24 (2018-07-12) =
+* log functions that use Postie filters
+* remove empty tags
+
 = 1.9.23 (2018-05-28) =
 * Fix issue when attachment doesn't conform to MIME standard
 

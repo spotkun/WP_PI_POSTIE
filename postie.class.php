@@ -50,14 +50,14 @@ class Postie {
         DebugEcho("doing postie_session_start");
         do_action('postie_session_start');
 
-        $this->postie_environment();
-
         $wp_content_path = dirname(dirname(dirname(__FILE__)));
         DebugEcho("wp_content_path: $wp_content_path");
         if (file_exists($wp_content_path . DIRECTORY_SEPARATOR . 'filterPostie.php')) {
             DebugEcho("found filterPostie.php in $wp_content_path");
             include_once ($wp_content_path . DIRECTORY_SEPARATOR . 'filterPostie.php');
         }
+
+        $this->postie_environment();
 
         if (function_exists('memory_get_usage')) {
             DebugEcho(__("memory at start of email processing: ", 'postie') . memory_get_usage());
@@ -839,8 +839,9 @@ class Postie {
 
     function save_post($details, $isReply) {
         $post_ID = 0;
-        $details['post_content'] = str_replace('\\', '\\\\', $details['post_content']);//replace all backslashs with double backslashes since WP will remove single backslash
+        $details['post_content'] = str_replace('\\', '\\\\', $details['post_content']); //replace all backslashs with double backslashes since WP will remove single backslash
         if (!$isReply) {
+            DebugEcho("postie_save_post: about to insert post");
             $post_ID = wp_insert_post($details, true);
             if (is_wp_error($post_ID)) {
                 EchoError("PostToDB Error: " . $post_ID->get_error_message());
@@ -851,8 +852,11 @@ class Postie {
                 $this->notify_error("Failed to create {$details['post_type']}: {$details['post_title']}", "Error: " . $post_ID->get_error_message() . "\n\n" . $details['post_content']);
 
                 $post_ID = null;
+            } else {
+                DebugEcho("postie_save_post: post inserted");
             }
         } else {
+            DebugEcho("postie_save_post: inserting comment");
             $comment = array(
                 'comment_author' => $details['comment_author'],
                 'comment_post_ID' => $details['ID'],
@@ -1220,7 +1224,9 @@ class Postie {
                 // then it should be removed
                 if (!$is_reply) {
                     wp_delete_post($post_id);
-                    DebugEcho("postie_post filter cleared the post, not saving. deleted $post_id");
+                    DebugEcho("post_email: postie_post filter cleared the post, not saving. deleted $post_id");
+                } else {
+                    DebugEcho("post_email: postie_post ended up with no post array.");
                 }
             } else {
                 $postid = $this->save_post($details, $is_reply);
@@ -1235,6 +1241,7 @@ class Postie {
                     }
                 }
 
+                DebugEcho("post_email: sending notifications");
                 $this->email_notify($mimeDecodedEmail, $recipients, $postid);
 
                 if ($this->is_debugmode()) {
@@ -1380,7 +1387,7 @@ class Postie {
         if (array_key_exists('headers', $mimeDecodedEmail) && array_key_exists('from', $mimeDecodedEmail['headers'])) {
             $from = $mimeDecodedEmail['headers']['from']['mailbox'] . '@' . $mimeDecodedEmail['headers']['from']['host'];
             $from = apply_filters('postie_filter_email', $from);
-            DebugEcho("ValidatePoster: post postie_filter_email $from");
+            DebugEcho("validate_poster: post postie_filter_email $from");
 
             $toEmail = '';
             if (isset($mimeDecodedEmail['headers']['to'])) {
@@ -1393,15 +1400,15 @@ class Postie {
             }
 
             $from = apply_filters("postie_filter_email2", $from, $toEmail, $replytoEmail);
-            DebugEcho("ValidatePoster: post postie_filter_email2 $from");
+            DebugEcho("validate_poster: post postie_filter_email2 $from");
         } else {
-            DebugEcho("No 'from' header found");
+            DebugEcho("validate_poster: No 'from' header found");
             DebugDump($mimeDecodedEmail['headers']);
         }
 
         if (array_key_exists("headers", $mimeDecodedEmail)) {
             $from = apply_filters("postie_filter_email3", $from, $mimeDecodedEmail['headers']);
-            DebugEcho("ValidatePoster: post postie_filter_email3 $from");
+            DebugEcho("validate_poster: post postie_filter_email3 $from");
         }
 
         $resentFrom = "";
@@ -1412,13 +1419,13 @@ class Postie {
         //See if the email address is one of the special authorized ones
         $user_ID = '';
         if (!empty($from)) {
-            DebugEcho("Confirming Access For $from ");
+            DebugEcho("validate_poster: Confirming Access For $from ");
             $user = get_user_by('email', $from);
             if ($user !== false) {
                 if (is_user_member_of_blog($user->ID)) {
                     $user_ID = $user->ID;
                 } else {
-                    DebugEcho("$from is not user of blog " . get_current_blog_id());
+                    DebugEcho("validate_poster: $from is not user of blog " . get_current_blog_id());
                 }
             }
         }
@@ -1426,31 +1433,31 @@ class Postie {
         if (!empty($user_ID)) {
             $user = new WP_User($user_ID);
             if ($user->has_cap("post_via_postie")) {
-                DebugEcho("$user_ID has 'post_via_postie' permissions");
+                DebugEcho("validate_poster: $user_ID has 'post_via_postie' permissions");
                 $poster = $user_ID;
 
-                DebugEcho("ValidatePoster: pre postie_author $poster");
+                DebugEcho("validate_poster: pre postie_author $poster");
                 $poster = apply_filters("postie_author", $poster);
-                DebugEcho("ValidatePoster: post postie_author $poster");
+                DebugEcho("validate_poster: post postie_author $poster");
             } else {
-                DebugEcho("$user_ID does not have 'post_via_postie' permissions");
+                DebugEcho("validate_poster $user_ID does not have 'post_via_postie' permissions");
                 $user_ID = "";
             }
         }
 
         if (empty($user_ID) && ($config['turn_authorization_off'] || $this->is_email_authorized($from, $config['authorized_addresses']) || $this->is_email_authorized($resentFrom, $config['authorized_addresses']))) {
-            DebugEcho("ValidatePoster: looking up default user " . $config['admin_username']);
+            DebugEcho("validate_poster: looking up default user " . $config['admin_username']);
             $user = get_user_by('login', $config['admin_username']);
             if ($user === false) {
                 EchoError("Your 'Default Poster' setting '" . $config['admin_username'] . "' is not a valid WordPress user (2)");
                 $poster = 1;
             } else {
                 $poster = $user->ID;
-                DebugEcho("ValidatePoster: pre postie_author (default) $poster");
+                DebugEcho("validate_poster: pre postie_author (default) $poster");
                 $poster = apply_filters("postie_author", $poster);
-                DebugEcho("ValidatePoster: post postie_author (default) $poster");
+                DebugEcho("validate_poster: post postie_author (default) $poster");
             }
-            DebugEcho("ValidatePoster: found user '$poster'");
+            DebugEcho("validate_poster: found user '$poster'");
         }
 
         if (!$poster) {
@@ -1466,7 +1473,7 @@ class Postie {
         if ($config['force_user_login'] == true) {
             $user = get_user_by('id', $poster);
             if ($user) {
-                DebugEcho("logging in as {$user->user_login}");
+                DebugEcho("validate_poster: logging in as {$user->user_login}");
                 wp_set_current_user($poster);
                 //wp_set_auth_cookie($poster);
                 do_action('wp_login', $user->user_login);
@@ -1600,6 +1607,37 @@ class Postie {
         DebugEcho("Postie is in " . plugin_dir_path(__FILE__), $force_display);
         DebugEcho("Postie Version: " . POSTIE_VERSION, $force_display);
         DebugEcho("POSTIE_DEBUG: " . ($this->is_debugmode() ? 'On' : 'Off'), $force_display);
+
+        $this->show_filters_for('postie_filter_email');
+        $this->show_filters_for('postie_filter_email2');
+        $this->show_filters_for('postie_filter_email3');
+        $this->show_filters_for('postie_author');
+        $this->show_filters_for('postie_post_before');
+        $this->show_filters_for('postie_post_after');
+        $this->show_filters_for('postie_file_added');
+        $this->show_filters_for('postie_gallery');
+        $this->show_filters_for('postie_comment_before');
+        $this->show_filters_for('postie_comment_after');
+        $this->show_filters_for('postie_category_default');
+        $this->show_filters_for('postie_log_debug');
+        $this->show_filters_for('postie_log_error');
+        $this->show_filters_for('postie_session_start');
+        $this->show_filters_for('postie_session_end');
+        $this->show_filters_for('postie_preconnect');
+        $this->show_filters_for('postie_post_pre');
+        $this->show_filters_for('postie_email_reject_recipients');
+        $this->show_filters_for('postie_email_notify_recipients');
+        $this->show_filters_for('postie_email_reject_subject');
+        $this->show_filters_for('postie_email_notify_subject');
+        $this->show_filters_for('postie_email_reject_body');
+        $this->show_filters_for('postie_place_media');
+        $this->show_filters_for('postie_place_media_before');
+        $this->show_filters_for('postie_place_media_after');
+        $this->show_filters_for('postie_raw');
+        $this->show_filters_for('postie_bare_link');
+        $this->show_filters_for('postie_category');
+        $this->show_filters_for('postie_file_added_pre');
+        $this->show_filters_for('postie_include_attachment');
     }
 
     function is_debugmode() {

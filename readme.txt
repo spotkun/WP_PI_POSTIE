@@ -7,7 +7,7 @@ Tags: e-mail, email, post-by-email
 Requires PHP: 5.3
 Requires at least: 4.0
 Tested up to: 4.9
-Stable tag: 1.9.23
+Stable tag: 1.9.24
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -107,6 +107,10 @@ All script, style and body tags are stripped from html emails.
 Attachments are now processed in the order they were attached.
 
 == CHANGELOG ==
+= 1.9.24 (2018-07-12) =
+* log functions that use Postie filters
+* remove empty tags
+
 = 1.9.23 (2018-05-28) =
 * Fix issue when attachment doesn't conform to MIME standard
 

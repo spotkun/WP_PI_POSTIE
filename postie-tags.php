@@ -448,7 +448,7 @@ function tag_Tags(&$content, $config) {
             if (!empty($matches[1])) {
                 DebugEcho("tag_Tags: Found tags: $matches[1]");
                 $content = str_replace($matches[0], "", $content);
-                $post_tags = array_merge($post_tags, preg_split("/,\s*/", trim($matches[1])));
+                $post_tags = array_merge($post_tags, array_filter(preg_split("/,\s*/", trim($matches[1]))));
             }
         }
     }
