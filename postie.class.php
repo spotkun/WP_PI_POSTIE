@@ -699,6 +699,11 @@ class Postie {
             DebugEcho("post tag_Categories: $content");
         }
 
+        $post_categories = tag_categorie2($poster);
+        if ($fulldebug) {
+            DebugEcho("post tag_Categories: $content");
+        }
+
         $post_tags = tag_Tags($content, $config);
         if ($fulldebug) {
             DebugEcho("post tag_Tags: $content");

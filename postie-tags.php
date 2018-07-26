@@ -279,6 +279,36 @@ function tag_Excerpt(&$content, $config) {
     return $post_excerpt;
 }
 
+
+function tag_categorie2($userId) {
+    DebugEcho("tag_Categories: start");
+    DebugEcho("user: user_{$userId}");
+    $userCategory = (int)get_field("category", "user_{$userId}");
+    DebugEcho("user_Category: {$userCategory}");
+
+    $categories = get_terms(array('hide_empty' => 0));
+    $definedCategories = array();
+    
+    foreach ($categories as $category) {
+        $definedCategories[$category->term_taxonomy_id] = $category->name;
+    }
+
+    $post_categories = array();
+    DebugEcho("definedCategories:");
+    var_dump($definedCategories);
+
+    if (array_key_exists($userCategory, $definedCategories)) {
+        DebugEcho("tag_Categories: found categories {$userCategory}:{$definedCategories[$userCategory]}");
+        $post_categories[] = $userCategory;
+    }
+    DebugEcho("post_categories:");
+    var_dump($post_categories);
+
+    DebugEcho("tag_Categories: NOT found categories");
+    return $post_categories;
+
+}
+
 /**
  * This function determines the categories ids for the post
  * @return array
